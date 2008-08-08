@@ -1,0 +1,195 @@
+# $Id$
+#
+# German translation of Drupal (general)
+# Copyright Hannes Nagl <admin@cyberkov.at>
+# Generated from files:
+#  aoc_citystatus.module: n/a
+#  aoc_citystatus.info: n/a
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2008-08-08 21:42+0200\n"
+"PO-Revision-Date: 2008-08-08 21:42+0200\n"
+"Last-Translator: Hannes Nagl <admin@cyberkov.at>\n"
+"Language-Team: German <admin@cyberkov.at>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: aoc_citystatus.module:17
+msgid "City Progress"
+msgstr "Baufortschritt"
+
+#: aoc_citystatus.module:18
+msgid "Shows the progress of buildings in your guild city"
+msgstr "Zeigt den Baufortschritt der Gildenstadt an"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Keep"
+msgstr "Bergfried"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Trade Post"
+msgstr "Handelsposten"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Temple"
+msgstr "Tempel"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Library"
+msgstr "Universit&auml;t"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Barracks"
+msgstr "Kaserne"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Thieves' Guild"
+msgstr "Diebesgilde"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Weaponsmith Workshop"
+msgstr "Waffenschmiede"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Armorsmith Workshop"
+msgstr "Hufschmiede"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Alchemist Workshop"
+msgstr "Alchemistenwerkstatt"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Architect Workshop"
+msgstr "Ingenieurswerkstatt"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Wall"
+msgstr "Mauer"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Curved Wall"
+msgstr "Gekr&uuml;mmte Mauer"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Staired Wall"
+msgstr "Mauer mit Treppe"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Gate"
+msgstr "Tor"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Tower"
+msgstr "Turm"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Ending Tower"
+msgstr "Endturm"
+
+#: aoc_citystatus.module:495;495;495
+msgid "Corner Tower"
+msgstr "Eckturm"
+
+#: aoc_citystatus.module:503
+msgid "Copper"
+msgstr "Kupfer"
+
+#: aoc_citystatus.module:503
+msgid "Sandstone"
+msgstr "Sandstein"
+
+#: aoc_citystatus.module:503
+msgid "Ash"
+msgstr "Esche"
+
+#: aoc_citystatus.module:503
+msgid "Silver"
+msgstr "Silber"
+
+#: aoc_citystatus.module:503
+msgid "Iron"
+msgstr "Eisen"
+
+#: aoc_citystatus.module:503
+msgid "Granite"
+msgstr "Granit"
+
+#: aoc_citystatus.module:503
+msgid "Yew"
+msgstr "Eibe"
+
+#: aoc_citystatus.module:503
+msgid "Electrum"
+msgstr "Elektron"
+
+#: aoc_citystatus.module:503
+msgid "Duskmetal"
+msgstr "Dunkeleisen"
+
+#: aoc_citystatus.module:503
+msgid "Basalt"
+msgstr "Basalt"
+
+#: aoc_citystatus.module:503
+msgid "Oak"
+msgstr "Eiche"
+
+#: aoc_citystatus.module:503
+msgid "Gold"
+msgstr "Gold"
+
+#: aoc_citystatus.module:510
+msgid "Progress of Buildings"
+msgstr "Baufortschritt Geb&auml;ude"
+
+#: aoc_citystatus.module:511
+msgid "Progress of Walls"
+msgstr "Verteidigungsmauern"
+
+#: aoc_citystatus.module:512
+msgid "Remaining resources to complete First Tier Buildings:"
+msgstr "Verbleibend um T1 Gebäude abzuschliessen:"
+
+#: aoc_citystatus.module:513
+msgid "Remaining resources to complete Second Tier Buildings:"
+msgstr "Verbleibend um T2 Gebäude abzuschliessen:"
+
+#: aoc_citystatus.module:514
+msgid "Remaining resources to complete Third Tier Buildings:"
+msgstr "Verbleibend um T3 Gebäude abzuschliessen:"
+
+#: aoc_citystatus.module:515
+msgid "Remaining resources to complete First Tier Walls:"
+msgstr "Verbleibend um T1 Mauern abzuschliessen:"
+
+#: aoc_citystatus.module:516
+msgid "Remaining resources to complete Second Tier Walls:"
+msgstr "Verbleibend um T2 Mauern abzuschliessen:"
+
+#: aoc_citystatus.module:517
+msgid "Remaining resources to complete Third Tier Walls:"
+msgstr "Verbleibend um T3 Mauern abzuschliessen:"
+
+#: aoc_citystatus.module:32
+msgid "see city progress"
+msgstr "Baufortschritt sehen"
+
+#: aoc_citystatus.module:0
+msgid "aoc_citystatus"
+msgstr "aoc_citystatus"
+
+#: aoc_citystatus.info:0
+msgid "AoC City Status"
+msgstr "AoC Baufortschritt"
+
+#: aoc_citystatus.info:0
+msgid "Shows the build progress of your city"
+msgstr "Zeigt den Baufortschritt der Gildenstadt"
+
+#: aoc_citystatus.info:0
+msgid "Age of Conan"
+msgstr "Age of Conan"
+
