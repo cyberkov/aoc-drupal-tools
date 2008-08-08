@@ -1,0 +1,6 @@
+; $Id$
+name = AoC Online Users Block
+description = Shows a block of currently online inGame Users
+dependencies = aoc_tools
+package = Age of Conan
+

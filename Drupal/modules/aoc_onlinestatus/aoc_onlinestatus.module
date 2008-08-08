@@ -1,0 +1,41 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Displays users currently online inGame in a nifty block.
+ */
+
+/**
+ * Implementation of hook_block().
+ */
+function aoc_onlinestatus_block($op = 'list', $delta = 0, $edit = array()) {
+  if ($op == 'list') {
+    $block[0]['info'] = t('Displays users currently online inGame.');
+    return $block;
+  }
+  else if ($op == 'configure') {
+  }
+  else if ($op == 'save') {
+  }
+  else if ($op == 'view') {
+    switch ($delta) {
+      case 0:
+        $block = _aoc_onlinestatus_showonline();
+        break;
+    }
+    return $block;
+  }
+}
+
+function _aoc_onlinestatus_showonline() {
+  $sql = 'SELECT o.nickname AS nickname, o.status_gc_changetime AS since FROM bebot.online o WHERE status_gc = "1" ORDER BY o.nickname;';
+  $result = db_query($sql);
+  $block = "";
+  while ($field = db_fetch_object($result)) {
+    $block_content[]=$field->nickname;
+  }
+  $block['subject'] = 'inGame online';
+  $block['content'] = theme_item_list($block_content);
+  return $block;
+}

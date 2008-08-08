@@ -1,0 +1,6 @@
+; $Id$
+name = AoC City Status
+description = Shows the build progress of your city
+dependencies = aoc_tools
+package = Age of Conan
+

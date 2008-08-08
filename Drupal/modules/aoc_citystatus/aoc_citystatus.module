@@ -1,0 +1,481 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ *
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function aoc_citystatus_menu() {
+  $items = array();
+
+    $items[] = array(
+      'path' => 'cityprogress',
+      'title' => t('City Progress'),
+      'description' => t('Shows the progress of buildings in your guild city'),
+      'callback' => 'aoc_citystatus_progress',
+      'callback arguments' => '',
+      'access' => user_access('see city progress'),
+      'type' => MENU_NORMAL_ITEM,
+    );
+  return $items;
+}
+
+
+/**
+ * Implementation of hook_perm().
+ */
+function aoc_citystatus_perm() {
+  return array('see city progress');
+}
+
+/* ///////////////////// City progression /////////////////// */
+
+class aoc_citystatus_city {
+
+ /*
+                buildings order:
+                        0-9 = T1 buildings
+                        10-19 = T2 buildings
+                        20-29 = T3 buildings
+                        30-36 = T1 walls
+                        37-43 = T2 walls
+                        44-50 = T3 walls
+
+                resources order:
+                        brace (copper), brick (sandstone), joist (ash), plain facade (silver),
+                        lintel (iron), block (granite), beam (yew), ornate facde (electrum),
+                        girder (duskmetal), slab (basalt), frame (oak), grand facade (gold)
+
+        */
+        var $buildtimer = 0;
+        var $buildid = 0;
+        var $stock = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var $progress = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+        var $max = array(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 11, 19, 3, 2, 8, 4, 1, 11, 19, 3, 2, 8, 4, 1, 11, 19, 3, 2, 8, 4, 1);
+        var $sequence = array(-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 0, 0, 0, 0, 0, 0, 0, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43);
+        var $names = array('Bergfried I', 'Handelsposten I', 'Tempel I', 'Universit&auml;t I', 'Kaserne I', 'Diebesgilde I', 'Waffenschmiede I', 'Hufschmiede I', 'Alchemistenwerkstatt I', 'Ingenieurswerkstatt I', 'Bergfried II', 'Handelsposten II', 'Tempel II', 'Universit&auml;t II', 'Kaserne II', 'Diebesgilde II', 'Waffenschmiede II', 'Hufschmiede II', 'Alchemistenwerkstatt II', 'Ingenieurswerkstatt II', 'Bergfried III', 'Handelsposten III', 'Tempel III', 'Universit&auml;t III', 'Kaserne III', 'Diebesgilde III', 'Waffenschmiede III', 'Hufschmiede III', 'Alchemistenwerkstatt III', 'Ingenieurswerkstatt III', 'Mauer I', 'Gekr&uuml;mmte Mauer I', 'Mauer mit Treppe I', 'Tor I', 'Turm I', 'Endturm I', 'Eckturm I', 'Mauer II', 'Gekr&uuml;mmte Mauer II', 'Mauer mit Treppe II', 'Tor II', 'Turm II', 'Endturm II', 'Eckturm II', 'Mauer III', 'Gekr&uuml;mmte Mauer III', 'Mauer mit Treppe III', 'Tor III', 'Turm III', 'Endturm III', 'Eckturm III');
+
+        var $images = array('keep_tier1.jpg', 'tradepost.jpg', 'temple.jpg', 'university.jpg', 'barracks.jpg', 'thiefsguild.jpg', 'blacksmith_workshop.jpg', 'armourer_workshop.jpg', 'alchemist_workshop.jpg', 'engineer_workshop.jpg',
+  'keep_tier2.jpg', 'tradepost.jpg', 'temple.jpg', 'university.jpg', 'barracks.jpg', 'thiefsguild.jpg', 'blacksmith_workshop.jpg', 'armourer_workshop.jpg', 'alchemist_workshop.jpg', 'engineer_workshop.jpg',
+ 'keep_tier3.jpg', 'tradepost.jpg', 'temple.jpg', 'university.jpg', 'barracks.jpg', 'thiefsguild.jpg', 'blacksmith_workshop.jpg', 'armourer_workshop.jpg', 'alchemist_workshop.jpg', 'engineer_workshop.jpg',
+  'wall.jpg', 'wall.jpg', 'wall.jpg', 'wall_gate.jpg', 'tower.jpg', 'tower.jpg', 'tower.jpg',
+  'wall.jpg', 'wall.jpg', 'wall.jpg', 'wall_gate.jpg', 'tower.jpg', 'tower.jpg', 'tower.jpg',
+  'wall.jpg', 'wall.jpg', 'wall.jpg', 'wall_gate.jpg', 'tower.jpg', 'tower.jpg', 'tower.jpg');
+
+  var $resources = array(
+                array(10, 20, 15, 5, 0, 0, 0, 0, 0, 0, 0, 0),  //start t1 buildings
+                array(10, 20, 15, 5, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 5, 2, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(3, 5, 4, 1, 0, 0, 0, 0, 0, 0, 0, 0),  //end t1
+                array(0, 0, 0, 0, 120, 250, 150, 50, 0, 0, 0, 0),  //start t2 buildings
+                array(0, 0, 0, 0, 120, 250, 150, 50, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 50, 150, 75, 20, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 40, 120, 50, 20, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 40, 120, 50, 10, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 40, 120, 50, 10, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 40, 120, 50, 10, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 40, 120, 50, 10, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 50, 150, 75, 20, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 40, 120, 50, 10, 0, 0, 0, 0),  //end t2
+                array(0, 0, 0, 0, 0, 0, 0, 0, 300, 500, 200, 150),  //start t3 buildings
+                array(0, 0, 0, 0, 0, 0, 0, 0, 2000, 3000, 1800, 600),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 1200, 1900, 1000, 220),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 700, 1500, 600, 220),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 700, 1500, 600, 130),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 700, 1500, 600, 130),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 700, 1500, 600, 130),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 700, 1500, 600, 130),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 1200, 1900, 1000, 220),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 700, 1500, 600, 130),  //end t3
+                array(0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),  //t1 wall
+                array(0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 0, 12, 6, 0, 0, 0, 0, 0),  //t2 wall
+                array(0, 0, 0, 0, 0, 12, 6, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 0, 12, 12, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 6, 12, 12, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 6, 12, 6, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 6, 12, 6, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 6, 12, 6, 0, 0, 0, 0, 0),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 0, 120, 60, 0),  //t3 wall
+                array(0, 0, 0, 0, 0, 0, 0, 0, 0, 120, 60, 0),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 0, 120, 120, 0),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 60, 120, 120, 0),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 60, 120, 60, 0),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 60, 120, 60, 0),
+                array(0, 0, 0, 0, 0, 0, 0, 0, 60, 120, 60, 0)
+  );
+
+        var $bonuslist = array(
+                "Max Health, based on level",
+                "Trader NPC in Guild City",
+                "+1 Heroic Resistance Rating",
+                "+1 Heroic Magic Rating",
+                "+1 Heroic Defense Rating",
+                "+1 Heroic Attack Rating",
+                "Unlocks Level 70 Weapons",
+                "Unlocks Level 70 Armor",
+                "Unlocks Level 70 Alchemy",
+                "Unlocks Tier 2 Plans",
+                "Max Health, based on level",
+                "",
+                "+2 Heroic Resistance Rating",
+                "+2 Heroic Magic Rating",
+                "+2 Heroic Defense Rating",
+                "+2 Heroic Attack Rating",
+                "Unlocks Level 75 Weapons",
+                "Unlocks Level 75 Armor",
+                "Unlocks Level 75 Alchemy",
+                "Unlocks Tier 3 Plans",
+                "Max Health, based on level",
+                "",
+                "+3 Heroic Resistance Rating",
+                "+3 Heroic Magic Rating",
+                "+3 Heroic Defense Rating",
+                "+3 Heroic Attack Rating",
+                "Unlocks Level 80 Weapons",
+                "Unlocks Level 80 Armor",
+                "Unlocks Level 80 Alchemy",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+        );
+  var $gathernames = array("Kupfer", "Sandstein", "Esche", "Silber", "Eisen", "Granit", "Eibe", "Elektron", "Orichalcum", "Basalt", "Eiche", "Gold");
+	
+  var $gatherimages = array('copper.jpg', 'sandstone.jpg', 'ash.jpg', 'silver.jpg', 'iron.jpg', 'granite.jpg', 'yew.jpg', 'electrum.jpg', 'duskmetal.jpg', 'basalt.jpg', 'yew.jpg', 'gold.jpg');
+
+  var $refinednames = array("St&uuml;tzbalken", "Ziegel", "Strebe", "Einfache Fassade", "Sturz", "Block", "Balken", "Verzierte Fassade", "Tr&auml;ger", "Platte", "Rahmen", "Prachtvolle Fassade");
+
+function __construct() {
+    // Get our progress from the DB
+    $sql = db_query("SELECT `vark` FROM bebot.`city` WHERE `key` = 'progress';");
+    $result = db_fetch_array($sql);
+    if (!empty($result)) {
+                        $this -> progress = explode(",", $result['vark']);
+    }
+    else {
+      echo "oops. got no data for progress! <br />";
+      echo $result[0];
+    }
+		
+  // Get our guild bank stock
+  $sql = db_query("SELECT `vark` FROM bebot.`city` WHERE `key` = 'stock';");
+  $result = db_fetch_array($sql);
+  if (!empty($result)) {
+    $this -> stock = explode(",", $result['vark']);
+  }
+  else {
+    echo "oops. got no data for stock! <br />";
+    echo $result[0];
+  }
+		
+// Get our Max
+  $sql = db_query("SELECT `vark` FROM bebot.`city` WHERE `key` = 'max';");
+  $result = db_fetch_array($sql);
+  if (!empty($result)) {
+    $this -> max = explode(",", $result['vark']);
+  }
+  else {
+  echo "oops. got no data for max! <br />";
+  echo $result[0];
+  }
+}
+
+
+function status() {
+  $t1complete = true;
+  $t2complete = true;
+  $t3complete = true;
+	//	$status .= "<p><h2>Gildenbank</h2>";
+	//	$status .= str_replace(",","<br />  ",$this->reqs($this->stock,"default",false)); // Bank
+		
+  $status .= "</p><p><h2>Baufortschritt Geb&auml;ude</h2>";
+  $status .= "<table>";
+  $t1mats = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  $t2mats = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  $t3mats = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  $header = array();
+
+  // check if T1 has been completed
+  for ($w = 0; $w <= 9; $w++) {
+    $grey='grey_';
+    if ($this->progress[$w] == $this->max[$w]) {
+      $grey = '';
+    }
+
+    $t1block .= '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/building/'. $grey . $this->images[$w] .'" />'. $this->progress[$w] ." / ". $this->max[$w] . $this->names[$w] ."<br />";
+
+    if ($this->progress[$w] < $this->max[$w]) {
+                              for ($m = $this->progress[$w]; $m < $this->max[$w]; $m++) {
+                                        foreach ($this->resources[$w] as $mi => $mq) {
+                                                $t1mats[$mi] += $mq;
+                                        }
+                                }
+                                $t1complete = false;
+                        }
+                }
+		
+		// check if T2 has been completed
+                for ($w = 10; $w <= 19; $w++) {
+                  $grey='grey_';
+                  if ($this->progress[$w] == $this->max[$w]) {
+                    $grey = '';
+                }
+								
+
+  $t2table[] = array('data' => array(
+    '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/building/'. $grey . $this->images[$w] .'" />',
+    $this->progress[$w] ." / ". $this->max[$w],
+    $this->names[$w],
+    ));
+
+    if ($this->progress[$w] < $this->max[$w])  {
+                                for ($m = $this->progress[$w]; $m < $this->max[$w]; $m++) {
+                                        foreach ($this->resources[$w] as $mi => $mq) {
+                                                $t2mats[$mi] += $mq;
+                                        }
+                                }
+                                $t2complete = false;
+                        }
+                }
+    $t2block .= "<tr><td>". theme('table', $header, $t2table) ."</td>";
+
+		// check if T3 has been completed
+  for ($w = 20; $w <= 29; $w++) {
+    $grey = 'grey_';
+    if ($this->progress[$w] == $this->max[$w]) {
+      $grey = '';
+    }
+
+  $t3table[] = array('data' => array(
+  '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/building/'. $grey . $this->images[$w] .'" />',
+  $this->progress[$w] ." / ". $this->max[$w],
+  $this->names[$w],
+  ));
+
+
+  if ($this->progress[$w] < $this->max[$w]) {
+                                for ($m = $this->progress[$w]; $m < $this->max[$w]; $m++) {
+                                        foreach ($this->resources[$w] as $mi => $mq) {
+                                                $t3mats[$mi] += $mq;
+                                        }
+                                }
+                                $t3complete = false;
+                        }
+                }
+  $t3block .= theme('table', $header, $t3table);
+
+                if (!$t1complete) {
+                        $t1status = " <h3>Verbleibend um T1 Geb&auml;ude abzuschliessen:</h3> <br />  ". $this->reqs($t1mats) ."<br /><br />\n\n";
+                }
+
+                if (!$t2complete) {
+                        $t2status = '<td align="center" valign = "top">  <h3>Verbleibend um T2 Geb&auml;ude abzuschliessen:</h3> <br />  '. $this->reqs($t2mats) ."</td></tr></table><br /><br />\n\n";
+
+                }
+
+                if (!$t3complete) {
+                        $t3status = '<td align="center" valign = "top"> <h3>Vebleibend um T3 Geb&auml;ude abzuschliessen:</h3> <br />  '. $this->reqs($t3mats) ."</td></tr></table><br /><br />\n\n";
+                }
+
+                if (!$t1complete) {
+                        $status .= $t1block ."<br /><br />";
+                }
+
+                if (!$t2complete && $t1complete) {
+                        $status .= $t2block ."<br /><br />";
+                }
+                if (!$t2complete && $t1complete) {
+                        $status .= $t2status;
+                }
+
+                if (!$t3complete && $t1complete && $t2complete) {
+                        $status .= $t3block ."<br /><br />";
+                }
+                if ((!$t3complete && $t2complete) || $t3complete) {
+                        $status .= $t3status;
+                }
+
+ //walls 30-36 = t1 walls, 37-43 = t2, 44-50 = t3
+
+  $w1complete = true;
+  $w2complete = true;
+  $w3complete = true;
+  $w1mats = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  $w2mats = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  $w3mats = array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+  for ($w = 30; $w <= 36; $w++) {
+  $grey = 'grey_';
+    if ($this->progress[$w] == $this->max[$w]) {
+      $grey = '';
+    }
+
+  $w1table[] = array('data' => array(
+  '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/building/'. $grey . $this->images[$w] .'" />',
+  $this->progress[$w] ." / ". $this->max[$w],
+  $this->names[$w],
+  ));
+
+                        if ($this->progress[$w] < $this->max[$w]) {
+                                for ($m = $this->progress[$w]; $m < $this->max[$w]; $m++) {
+                                        foreach ($this->resources[$w] as $mi => $mq) {
+                                                $w1mats[$mi] += $mq;
+                                        }
+                                }
+                                $w1complete = false;
+                        }
+                }
+    $w1block .= theme('table', $header, $w1table);
+
+                for ($w = 37; $w <= 43; $w++) {
+  $grey = 'grey_';
+  if ($this->progress[$w] == $this->max[$w]) {
+    $grey = '';
+  }
+                        $w2table[] = array('data' => array(
+    '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/building/'. $grey . $this->images[$w] .'" />',
+    $this->progress[$w] ." / ". $this->max[$w],
+    $this->names[$w],
+    ));
+
+                        if ($this->progress[$w] < $this->max[$w]) {
+                                for ($m = $this->progress[$w]; $m < $this->max[$w]; $m++) {
+                                        foreach ($this->resources[$w] as $mi => $mq) {
+                                                $w2mats[$mi] += $mq;
+                                        }
+                                }
+                                $w2complete = false;
+                        }
+                }
+  $w2block .= "<table><tr><td>". theme('table', $header, $w2table) ."</td>";
+		
+  for ($w = 44; $w <= 50; $w++) {
+    $grey = 'grey_';
+    if ($this->progress[$w] == $this->max[$w]) {
+      $grey = '';
+    }
+
+                        $w3table[] = array('data' => array(
+  '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/building/'. $grey . $this->images[$w] .'" />',
+  $this->progress[$w] ." / ". $this->max[$w],
+  $this->names[$w],
+  ));
+
+                        if ($this->progress[$w] < $this->max[$w]) {
+                                for ($m = $this->progress[$w]; $m < $this->max[$w]; $m++) {
+                                        foreach ($this->resources[$w] as $mi => $mq) {
+                                                $w3mats[$mi] += $mq;
+                                        }
+                                }
+                                $w3complete = false;
+                        }
+                }
+    $w3block .= "<table><tr><td>". theme('table', $header, $w3table) ."</td>";
+
+    $status .= "<p><h2>Verteidigungsmauern</h2><br />";
+                if (!$w1complete) {
+                        $w1status = " <h3>Verbleibend um T1 Mauern abzuschliessen:</h3> <br />   ". str_replace(", ", "<br />\n  ", $this->reqs($w1mats)) ."\n\n";
+                }
+
+                if (!$w2complete) {
+                        $w2status = '<td align="center" valign = "top"> <h3>Verbleibend um T2 Mauern abzuschliessen: </h3><br /> '. str_replace(", ", "<br />\n  ", $this->reqs($w2mats)) ."</td></tr></table>\n\n";
+                }
+
+                if (!$w3complete) {
+                        $w3status = '<td align="center" valign = "top"> <h3>Verbleibend um T3 Mauern abzuschliessen:</h3> <br />  '. str_replace(", ", "<br />\n  ", $this->reqs($w3mats)) ."</td></tr></table>\n\n";
+                }
+
+                if (!$w1complete) {
+                        $status .= $w1block ."<br /> ";
+                }
+                $status .= $w1status;
+                if (!$w2complete && $w1complete) {
+                        $status .= $w2block ."<br />";
+                }
+                if ( (!$w2complete && $w1complete) || $w2complete ) {
+                        $status .= $w2status;
+                }
+
+                if (!$w3complete && $w1complete && $w2complete) {
+                        $status .= $w3block ."<br /> ";
+                }
+                if ( (!$w3complete && $w2complete) || $w3complete) {
+                        $status .= $w3status;
+                }
+        return $status;
+        }
+
+  function reqs($array, $userefinednames="default", $showzeros=false) {
+                if (is_array($array)) {
+                        $reqs = "";
+                        $header = array();
+                        foreach ($array as $i => $q) {
+                                if ($q > 0 || $showzeros) {
+                                        $refnames = $userefinednames;
+                                        $refnames = FALSE;
+
+                                        if ($refnames) {
+                                              $reqs .= $q ." ". $this->refinednames[$i] .", ";
+                                        }
+                                        else {
+                                          $reqs[] = array('data' => array(
+                                          '<img src="'. drupal_get_path('module', 'aoc_citystatus') .'/resource/'. $this->gatherimages[$i] .'" />',
+                                          $q*10 ." ". $this->gathernames[$i],
+                                          ));
+                                        }
+                                }
+                        }
+//                        return substr($reqs,0,-2);
+  return theme('table', $header, $reqs);
+                }
+                else {
+                        return "Invalid data to generate requirements.";
+                }
+        }
+		
+	
+
+}
+
+
+function aoc_citystatus_progress() {
+  $city = new aoc_citystatus_city();
+  $status = $city->status();
+  return $status;
+}
+
+

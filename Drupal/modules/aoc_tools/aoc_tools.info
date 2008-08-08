@@ -1,0 +1,6 @@
+; $Id$
+name = Age of Conan Tools 
+description = "A set of tools that may aid you with managing an Age of Conan Guild"
+package = "Age of Conan"
+# dependencies = 
+
