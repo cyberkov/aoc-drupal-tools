@@ -1,0 +1,100 @@
+<?php
+/**
+* Display help and module information
+* @param section which section of the site we're displaying help
+* @return help text for section
+*/
+function dkp_help($section='') {
+  $output = '';
+  switch ($section) {
+    case "admin/help#dkp":
+      $output = '<p>'.  t("Displays and tracks guild DKP"). '</p>';
+      break;
+  }
+  return $output;
+}
+
+/**
+* Valid permissions for this module
+*/
+function dkp_perm() {
+  return array('access dkp content');
+} 
+
+
+function dkp_menu() {
+  global $user;
+  $items = array();
+    $items[] = array('path' => 'dkp', 'title' => t('DKP'),
+      'callback' => 'dkp_listmembers', 'access' => user_access('access dkp content'),
+      'weight' => 1);
+    $items[] = array('path' => 'dkp/members', 'title' => t('Members'),
+      'callback' => 'dkp_listmembers', 'access' => user_access('access dkp content'),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+      'weight' => 1);
+    $items[] = array('path' => 'dkp/raids', 'title' => t('Raids'),
+      'callback' => 'dkp_listraids', 'access' => user_access('access dkp content'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 2);
+    $items[] = array('path' => 'dkp/items', 'title' => t('Loots'),
+      'callback' => 'dkp_listitems', 'access' => user_access('access dkp content'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 3);
+    $items[] = array('path' => 'dkp/events', 'title' => t('Events'),
+      'callback' => 'dkp_listevents', 'access' => user_access('access dkp content'),
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 4);
+  return $items;
+}
+
+
+function dkp_listmembers($uid = 0) {
+dkp_start();
+if ($uid) {	
+    return dkp_members_view($uid);
+  } else {
+    return dkp_members_list();
+  }
+}
+
+
+function dkp_listitems($loot_id = 0) {
+dkp_start();
+if ($loot_id) {
+    return dkp_items_view($loot_id);
+  } else {
+    return dkp_items_list();  }	
+}
+
+function dkp_listraids($raid_id = 0) {	
+dkp_start();
+if ($raid_id) {
+    return dkp_raids_view($raid_id );
+  } else {
+    return dkp_raids_list();
+  }	
+}
+
+function dkp_listevents($event_id = 0) {	
+dkp_start();
+if ($event_id) {
+    return dkp_events_view( $event_id );
+  } else {
+    return dkp_events_list( );
+  }
+}
+
+
+function dkp_start() {	
+//module_load_include('inc', 'dkp', 'dkp_content');
+
+include_once(drupal_get_path('module', 'dkp') . '/dkp_content.inc');
+drupal_add_css( drupal_get_path('module', 'dkp') . '/dkp.css','module','all',false);
+
+
+//    drupal_add_css( drupal_get_path('module', 'warcraft_armory') . '/templates/master.css','module','all',false);
+//    drupal_add_js(  variable_get('warcraft_armory_overlib_path', drupal_get_path('module', 'warcraft_armory') . '/overlib/overlib.js'));
+
+}
+
+?>

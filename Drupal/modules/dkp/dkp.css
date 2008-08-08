@@ -1,0 +1,123 @@
+/* CSS Document */
+
+.positive { color: #008800; }
+.negative { color: #F80000; }
+.neutral  { color: #666666; }
+
+
+/**
+ * Tables
+ */
+table {
+  margin: 1em 0;
+  width: 100%;
+}
+
+thead th {
+  border-bottom: 3px solid #555;
+  color: #4a4a49;
+}
+
+thead div.sticky-header {
+  border-bottom: 3px solid #555;
+}
+
+td, th {
+  padding: .5em .75em;
+}
+
+tr.even, tr.even td {
+  background-color: #fcfcfa;
+  border:0;
+}
+
+tr.odd, tr.info, tr.odd td {
+  background-color: #eeece7;
+  border: solid #e5e3de;
+  border-width: 1px 0;
+}
+
+tr.odd td.active {
+  background-color: #dfdcd3;
+}
+
+tr.even td.active {
+  background-color: #eeece7;
+}
+
+td .name {
+  font-weight: bold;
+}
+
+tr td.region, tr td.module, tr td.container {
+  background-color: #444;
+  color: #eee;
+}
+
+td.region .description, td.module .description, td.container .description
+, td.region a:link, td.module a:link, td.container a:link
+, td.region a:visited, td.module a:visited, td.container a:visited {
+  color: #eee;
+}
+
+td.region .name, td.module .name, td.container .name {
+  font: 1.3em Helvetica, Arial, sans-serif normal;
+  letter-spacing: 0.1em;
+  padding: .25em 0;
+  font-weight: bold;
+}
+
+tr:first-child td.region, tr:first-child td.module, tr:first-child td.container {
+  border-top-width: 0;
+}
+
+
+
+
+table caption{
+  font-size: 1.3em;
+  color: #5c4c30;
+	text-align: left;
+	margin-bottom: -5px;
+	margin-top: 25px;
+}
+
+
+td {
+  font: 0.9em Monospace, Helvetica, Arial, sans-serif normal;
+  letter-spacing: 0.05em;
+  padding:0.15em 0.3em;
+}
+
+th {
+  font: 1.2em Monospace, Helvetica, Arial, sans-serif normal;
+  border-bottom: 3px solid #555;
+  background:#CCC;
+  color: #4a4a49;
+  text-align:left;
+  padding:0.15em 0.3em;
+}
+
+
+
+
+.count {
+width:20px;
+}
+
+.neutral, .positive, .negative, .date {
+width:50px;
+}
+
+
+.dkp_percent {
+text-align:right;
+width:200px;
+}
+
+.dkp_percent_bar {
+border: 1px solid black; 
+background: #B00; 
+height: 10px; 
+}
+

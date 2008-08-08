@@ -1,0 +1,8 @@
+; $Id$
+name = DKP
+description = Pulls DKP information from an existing EQDKP installation and displays it in Drupal.
+#dependencies = warcraft_armory
+core= 6.x
+version = 6.x-0.1
+package = DKP
+
