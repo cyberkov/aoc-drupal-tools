@@ -1,0 +1,180 @@
+<?php
+// $Id$
+
+/**
+ * Display help and module information
+ * @param section which section of the site we're displaying help
+ * @return help text for section
+ */
+function aoc_authorization_help($section='') {
+
+  $output = '';
+
+  switch ($section) {
+  case "admin/help#aoc_authorization":
+  $output = '<p>'. t("Assigns Users a specific role on Membership.") .'</p>';
+  break;
+  }
+
+  return $output;
+} // function aoc_authorization_help
+
+
+/**
+ * Valid permissions for this module
+ * @return array An array of valid permissions for the aoc_authorization module
+ */
+
+function aoc_authorization_perm() {
+  return array('administer AoC Authorization');
+} // function aoc_authorization_perm()
+
+
+/**
+ * Displays the administration page
+ */
+
+function aoc_authorization_admin() {
+
+  $form['aoc_authorization_bebot_table'] = array(
+  '#type' => 'textfield',
+  '#title' => t('Bebot Table'),
+  '#default_value' => variable_get('aoc_authorization_bebot_table', 'bebot'),
+  '#size' => 20,
+  '#maxlength' => 50,
+  '#description' => t('The database where bebot resides. Drupal\'s User <b>must</b> have access to it.')
+  );
+
+  $form['aoc_authorization_drupal_db'] = array(
+  '#type' => 'textfield',
+  '#title' => t('Drupal database name'),
+  '#default_value' => variable_get('aoc_authorization_drupal_db', 'your_drupal_db_name'),
+  '#size' => 64,
+  '#maxlength' => 64,
+  '#description' => t("Drupals database name")
+  );
+
+  $form['aoc_authorization_role'] = array(
+  '#type' => 'select',
+  '#title' => t('Users Role'),
+  '#default_value' => variable_get('aoc_authorization_role', 0),
+  '#options' => user_roles(TRUE),
+  '#description' => t("The role that should be assigned if the member is in the guild.")
+  );
+
+  $form['aoc_authorization_cron'] = array(
+  '#type' => 'checkbox',
+  '#title' => 'Update via cron',
+  '#default_value' => variable_get('aoc_authorization_cron', 0),
+  '#description' => t("Update the membership via cron? Activate this after you\'ve set up everything correctly.")
+  );
+
+  return system_settings_form($form);
+} // function aoc_authorization_admin end
+
+
+function _aoc_authorization_get_legit_users() {
+
+  $b = db_escape_string(variable_get('aoc_authorization_bebot_table', 'bebot'));
+//  $d = db_escape_string(variable_get('aoc_authorization_drupal_db', 'your_drupal_db_name')); // i know this is not cool, but I didn't find a way to extract the database name easily
+  $rid = db_escape_string(variable_get('aoc_authorization_role', 0));
+
+  $query="SELECT DISTINCT {profile_values}.uid AS uid
+  FROM ". $b .".users
+  INNER JOIN {profile_values} ON $b.users.nickname = {profile_values}.value
+  JOIN {users} ON {profile_values}.uid = {users}.uid
+  WHERE {profile_values}.uid NOT IN (SELECT DISTINCT {profile_values}.uid AS uid FROM $b.users
+  INNER JOIN {profile_values} ON $b.users.nickname = {profile_values}.value
+  JOIN {users} ON {profile_values}.uid = {users}.uid
+  JOIN {users_roles} ON {users}.uid = {users_roles}.uid
+  WHERE {users_roles}.rid = ". $rid .");";
+  $result = db_query($query);
+  $x = 0;
+  if (db_num_rows($result) >= 1) {
+    while ($row = db_fetch_array($result)) {
+      $return[$x] = $row['uid'];
+      $x++;
+      }
+    return $return;
+  }
+  else {
+    return false;
+  } // no users to add
+} // function aoc_authorization_get_legit_users end
+
+function _aoc_authorization_set_legit_users() {
+  $users = _aoc_authorization_get_legit_users();
+  if ($users == false) {
+    return true;
+  }
+
+  user_multiple_role_edit($users, 'add_role', variable_get('aoc_authorization_role', 0));
+  return true;
+}
+
+
+/*
+ * Cron Hook
+ * This will be called everytime cron is run, so we try keep it nice to the system :)
+ */
+
+function aoc_authorization_cron() {
+  if (variable_get('aoc_authorization_cron', 0) == 1) {
+    _aoc_authorization_set_legit_users();
+  }
+} // function aoc_authorization_cron end
+
+
+
+/*
+ * Menu Hook
+ */
+function aoc_authorization_menu() {
+
+  $items = array();
+  $items[] = array(
+    'path' => 'admin/settings/aoc_authorization',
+    'title' => t('AoC Authorization'),
+    'description' => t('Configure Role assignment of Members'),
+    'callback' => 'drupal_get_form',
+    'callback arguments' => 'aoc_authorization_admin',
+    'access' => user_access('administer AoC Authorization'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+} // function aoc_authorization_menu end
+
+
+/* ////////////////////// Installation, uninstall and Updates.... ////////////// */
+
+/*
+ * Install
+ */
+
+function aoc_authorization_install() {
+
+  // setup our profile fields
+  db_query("INSERT INTO {profile_fields} (`title`, `name`, `explanation`, `category`, `page`, `type`, `weight`, `required`, `register`, `visibility`, `autocomplete`, `options`) VALUES
+  ('Mainnchar', 'profile_mainchar', 'Name deines Hauptcharakters', 'InGame', '', 'textfield', 0, 1, 1, 2, 0, ''),
+  ('Rasse', 'profile_race', 'Abstammung des Charakters', 'InGame', '%value', 'selection', 0, 1, 1, 2, 0, 'Aquilonier\r\nCimmerier\r\nStygier'),
+  ('Klasse', 'profile_class', 'Klasse deines Mainchars', 'InGame', '%value', 'selection', 0, 1, 1, 2, 0, 'Assassine\r\nBarbar\r\nBaerenschamane\r\nDaemonologe\r\nDunkler Templer\r\nEroberer\r\nHerold des Xotli\r\nMitrapriester\r\nNekromant\r\nWaechter\r\nVollstrecker Sets\r\nWaldlaeufer'),
+  ('Beruf 1', 'profile_profession1', 'Dein erster Beruf, sofern bereits vorhanden.', 'InGame', '', 'selection', 0, 0, 1, 2, 0, 'Waffenschmied\r\nRüstungsschmied\r\nAlchemist\r\nArchitekt\r\nJuwelenschneider'),
+  ('Beruf 2', 'profile_profession2', 'Dein zweiter Beruf, sofern bereits vorhanden.', 'InGame', '', 'selection', 0, 0, 1, 2, 0, 'Waffenschmied\r\nRüstungsschmied\r\nAlchemist\r\nArchitekt\r\nJuwelenschneider');");
+
+} // function aoc_authorization_install end
+
+
+function aoc_authorization_uninstall() {
+  variable_del('aoc_authorization_bebot_table');
+  variable_del('aoc_authorization_drupal_db');
+  variable_del('aoc_authorization_role');
+  variable_del('aoc_authorization_cron');
+/*	variable_del('aoc_authorization_');
+	variable_del('aoc_authorization_');
+	variable_del('aoc_authorization_');
+	variable_del('aoc_authorization_');
+	variable_del('aoc_authorization_');
+ */
+
+}  // function aoc_authorization_uninstall end

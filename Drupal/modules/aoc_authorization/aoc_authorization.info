@@ -1,0 +1,6 @@
+; $Id$
+name = AoC Authorization 
+description = "Grants a specified role on users from the Bebot Member database"
+package = "Age of Conan"
+dependencies = profile 
+
