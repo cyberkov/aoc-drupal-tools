@@ -30,50 +30,9 @@ function aoc_authorization_perm() {
 } // function aoc_authorization_perm()
 
 
-/**
- * Displays the administration page
- */
-
-function aoc_authorization_admin() {
-
-  $form['settings'] = array(
-  '#type' => 'fieldset',
-  '#title' => t('Settings'),
-  '#collapsed' => TRUE,
-  );
-
-  $form['settings']['aoc_authorization_cron'] = array(
-  '#type' => 'checkbox',
-  '#title' => 'Active',
-  '#default_value' => variable_get('aoc_authorization_cron', 0),
-  '#description' => t("Update the memberships? Activate this after you\'ve set up everything correctly. <br /> As long this is not checked, nothing will be altered.")
-  );
-
-  $form['settings']['aoc_authorization_bebot_table'] = array(
-  '#type' => 'textfield',
-  '#title' => t('Bebot Table'),
-  '#default_value' => variable_get('aoc_authorization_bebot_table', 'bebot'),
-  '#size' => 20,
-  '#maxlength' => 50,
-  '#description' => t('The database where bebot resides. Drupal\'s User <b>must</b> have access to it.')
-  );
-
-  $form['settings']['aoc_authorization_role'] = array(
-  '#type' => 'select',
-  '#title' => t('Users Role'),
-  '#default_value' => variable_get('aoc_authorization_role', 0),
-  '#options' => user_roles(TRUE),
-  '#description' => t("The role that should be assigned if the member is in the guild.")
-  );
-
-
-  return system_settings_form($form);
-} // function aoc_authorization_admin end
-
-
 function _aoc_authorization_get_legit_users() {
 
-  $b = db_escape_string(variable_get('aoc_authorization_bebot_table', 'bebot'));
+  $b = db_escape_string(variable_get('aoc_tools_bebot_dbname', 'bebot'));
   $rid = db_escape_string(variable_get('aoc_authorization_role', 0));
 
   $query="SELECT DISTINCT {profile_values}.uid AS uid
@@ -122,27 +81,6 @@ function aoc_authorization_cron() {
 } // function aoc_authorization_cron end
 
 
-
-/*
- * Menu Hook
- */
-function aoc_authorization_menu() {
-
-  $items = array();
-  $items[] = array(
-    'path' => 'admin/settings/aoc_authorization',
-    'title' => t('AoC Authorization'),
-    'description' => t('Configure Role assignment of Members'),
-    'callback' => 'drupal_get_form',
-    'callback arguments' => 'aoc_authorization_admin',
-    'access' => user_access('administer AoC Authorization'),
-    'type' => MENU_NORMAL_ITEM,
-  );
-
-  return $items;
-} // function aoc_authorization_menu end
-
-
 /* ////////////////////// Installation, uninstall and Updates.... ////////////// */
 
 /*
@@ -158,12 +96,11 @@ function aoc_authorization_install() {
   ('Klasse', 'profile_class', 'Klasse deines Mainchars', 'InGame', '%value', 'selection', 0, 1, 1, 2, 0, 'Assassine\r\nBarbar\r\nBaerenschamane\r\nDaemonologe\r\nDunkler Templer\r\nEroberer\r\nHerold des Xotli\r\nMitrapriester\r\nNekromant\r\nWaechter\r\nVollstrecker Sets\r\nWaldlaeufer'),
   ('Beruf 1', 'profile_profession1', 'Dein erster Beruf, sofern bereits vorhanden.', 'InGame', '', 'selection', 0, 0, 1, 2, 0, 'Waffenschmied\r\nRüstungsschmied\r\nAlchemist\r\nArchitekt\r\nJuwelenschneider'),
   ('Beruf 2', 'profile_profession2', 'Dein zweiter Beruf, sofern bereits vorhanden.', 'InGame', '', 'selection', 0, 0, 1, 2, 0, 'Waffenschmied\r\nRüstungsschmied\r\nAlchemist\r\nArchitekt\r\nJuwelenschneider');");
-*/
+ */
 } // function aoc_authorization_install end
 
 
 function aoc_authorization_uninstall() {
-  variable_del('aoc_authorization_bebot_table');
   variable_del('aoc_authorization_role');
   variable_del('aoc_authorization_cron');
 }  // function aoc_authorization_uninstall end

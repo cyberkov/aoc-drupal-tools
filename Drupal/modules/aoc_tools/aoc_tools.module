@@ -35,39 +35,76 @@ function aoc_tools_perm() {
  */
 
 function aoc_tools_admin() {
-  $form['aoc_tools_bebot_database'] = array(
+
+// Actions - Submodule actions which can activated
+
+  $form['actions'] = array(
+  '#type' => 'fieldset',
+  '#title' => t('Actions'),
+  '#collapsed' => TRUE,
+  );
+
+  $form['actions']['aoc_tools_profession_cron'] = array(
+  '#type' => 'checkbox',
+  '#title' => 'Update professions in Bebot',
+  '#default_value' => variable_get('aoc_tools_profession_cron', 0),
+  '#description' => t("Update the professions on cronruns? Activate this if you want professions be synced back to Bebot.")
+  );
+
+if(module_exists('aoc_authorization')) {
+  $form['actions']['aoc_authorization_cron'] = array(
+  '#type' => 'checkbox',
+  '#title' => 'AoC authorization active',
+  '#default_value' => variable_get('aoc_authorization_cron', 0),
+  '#description' => t("Update the memberships? Activate this after you've set up everything correctly. <br /> As long this is not checked, nothing will be altered.")
+  );
+}
+
+
+// General setings tab
+
+  $form['general'] = array(
+   '#type' => 'fieldset',
+  '#title' => t('General'),
+  '#collapsed' => TRUE,
+  );
+ 
+  $form['general']['aoc_tools_bebot_database'] = array(
   '#type' => 'textfield',
   '#title' => t('Bebot database name'),
-  '#default_value' => variable_get('aoc_tools_bebot_dbname', 'Bebot'),
+  '#default_value' => variable_get('aoc_tools_bebot_dbname', 'bebot'),
   '#size' => 20,
   '#maxlength' => 20,
-  '#description' => t("The database name where Bebot stores it's data.")
+  '#description' => t("The database where bebot resides. Drupal's MySQL User <b>must</b> have access to it.")
   );
 
-  $form['aoc_tools_profession_cron'] = array(
-  '#type' => 'checkbox',
-  '#title' => 'Update professions in Bebot via cron',
-  '#default_value' => variable_get('aoc_tools_profession_cron', 0),
-  '#description' => t("Update the professions via cron? Activate this if you want to be able to use <i>!online profession</i> inGame.")
+
+// AoC Authorization
+if(module_exists('aoc_authorization')) {
+
+  $form['authorization'] = array(
+   '#type' => 'fieldset',
+  '#title' => t('AoC Authorization'),
+  '#collapsed' => TRUE,
   );
 
-  $form['aoc_tools_profession1'] = array(
+  $form['authorization']['aoc_authorization_role'] = array(
   '#type' => 'select',
-  '#title' => t('Profession Field 1'),
-  '#default_value' => variable_get('aoc_tools_profession1', 0),
-  '#options' => aoc_tools_profession_list_profile_fields(),
-  '#description' => t('Select the first profession field')
+  '#title' => t('Users Role'),
+  '#default_value' => variable_get('aoc_authorization_role', 0),
+  '#options' => user_roles(TRUE),
+  '#description' => t("The role that should be assigned if the member is in the guild.")
   );
+}
 
-  $form['aoc_tools_profession2'] = array(
-  '#type' => 'select',
-  '#title' => t('Profession Field 2'),
-  '#default_value' => variable_get('aoc_tools_profession2', 0),
-  '#options' => aoc_tools_profession_list_profile_fields(),
-  '#description' => t('Select the second profession field')
+// profession syncing
+  $form['profile'] = array(
+  '#type' => 'fieldset',
+  '#title' => t('Profile fields'),
+  '#collapsed' => TRUE,
   );
-
-  $form['aoc_tools_ingamename'] = array(
+ 
+  $form['profile']['aoc_tools_ingamename'] = array(
   '#type' => 'select',
   '#title' => t('InGame Name Field'),
   '#default_value' => variable_get('aoc_tools_ingamename', 0),
@@ -75,6 +112,21 @@ function aoc_tools_admin() {
   '#description' => t('Select the field where the inGame Names are stored.')
   );
 
+  $form['profile']['aoc_tools_profession1'] = array(
+  '#type' => 'select',
+  '#title' => t('Profession Field 1'),
+  '#default_value' => variable_get('aoc_tools_profession1', 0),
+  '#options' => aoc_tools_profession_list_profile_fields(),
+  '#description' => t('Select the first profession field')
+  );
+
+  $form['profile']['aoc_tools_profession2'] = array(
+  '#type' => 'select',
+  '#title' => t('Profession Field 2'),
+  '#default_value' => variable_get('aoc_tools_profession2', 0),
+  '#options' => aoc_tools_profession_list_profile_fields(),
+  '#description' => t('Select the second profession field')
+  );
 
   return system_settings_form($form);
 } // function aoc_tools_admin end
@@ -172,13 +224,15 @@ function aoc_tools_profession_update() {
   ORDER BY u.value;
   ');
 
+  $bebotdb = variable_get('aoc_tools_bebot_dbname', 'bebot');
+
   while ($field = db_fetch_object($result1)) {
-    $sql = 'INSERT INTO bebot.craftingclass(name, class1) VALUES ("'. $field->name .'","'. $field->class1 .'");';
+    $sql = 'INSERT INTO '. $bebotdb .'.craftingclass(name, class1) VALUES ("'. $field->name .'","'. $field->class1 .'");';
     db_query($sql);
   }
 
   while ($field = db_fetch_object($result2)) {
-    $sql = 'UPDATE bebot.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
+    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
     db_query($sql);
   }
 
@@ -187,7 +241,7 @@ function aoc_tools_profession_update() {
   FROM {profile_values} u
   JOIN {profile_values} v ON u.uid = v.uid
   JOIN {aoc_tools_translation} t ON v.value = t.de
-  JOIN bebot.craftingclass c ON u.value = c.name
+  JOIN '. $bebotdb .'.craftingclass c ON u.value = c.name
   WHERE u.fid = "'. $ingamename .'"
   AND u.uid != "0"
   AND v.fid = "'. $prof1 .'"
@@ -199,7 +253,7 @@ function aoc_tools_profession_update() {
   FROM {profile_values} u
   JOIN {profile_values} v ON u.uid = v.uid
   JOIN {aoc_tools_translation} t ON v.value = t.de
-  JOIN bebot.craftingclass c ON u.value = c.name
+  JOIN '. $bebotdb .'.craftingclass c ON u.value = c.name
   WHERE u.fid = "'. $ingamename .'"
   AND u.uid != "0"
   AND v.fid = "'. $prof2 .'"
@@ -208,12 +262,12 @@ function aoc_tools_profession_update() {
   ');
 	
   while ($field = db_fetch_object($result1)) {
-    $sql = 'UPDATE bebot.craftingclass SET class1 = "'. $field->class1 .'" WHERE name = "'. $field->name .'";';
+    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class1 = "'. $field->class1 .'" WHERE name = "'. $field->name .'";';
     db_query($sql);
   }
 
   while ($field = db_fetch_object($result2)) {
-    $sql = 'UPDATE bebot.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
+    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
     db_query($sql);
   }
 }
@@ -230,13 +284,10 @@ function aoc_tools_lister() {
   array('data' => t('Joined on'), 'field' => 'date'),
   array('data' => ' '),
   array('data' => t('Last seen at'), 'field' => 'last_seen'),
-  array('data' => ' '),
-  array('data' => t('Promote')));
+  );
 
-  $sql="SELECT v.uid AS uid, l.promoted AS promoted, b.nickname AS nickname, b.char_id AS char_id, b.added_at AS date, b.last_seen as last_seen
+  $sql="SELECT v.uid AS uid, b.nickname AS nickname, b.char_id AS char_id, b.added_at AS date, b.last_seen as last_seen
   FROM bebot.users b
-  LEFT JOIN {aoc_tools_lister} l
-  ON b.char_id = l.char_id
   LEFT JOIN {profile_values} v
   ON b.nickname = v.value
   WHERE b.added_at <= (UNIX_TIMESTAMP()-(14*24*60*60))
@@ -249,22 +300,10 @@ function aoc_tools_lister() {
   if (!empty($result)) {
     $registered = 0;
     $i=0;
-/*		$form['form'] = array(
-			'#type' => 'fieldset'
-			);
- */
     $nothing = NULL;
     while ($fields = db_fetch_array($result)) {
 			
-/*			$form['form']['promote'] = array(
-			    	'#type' => 'checkbox',
-//			        '#title' => t('Promote'),
-				'#default_value' => $fields['promoted'],
-				'#parent' => $fields['char_id'],
-			);
- */
-
-			// last_seen beautification
+  // last_seen beautification
   if ($fields['last_seen'] == 0) {
       $last_seen = t('never');
     }
@@ -274,11 +313,11 @@ function aoc_tools_lister() {
 
 // check if user registered
 if ($fields['uid']) {
-  $user_id = l('<img src="'. drupal_get_path('module', 'aoc_tools') .'/green.gif" />', ("user/". $fields['uid']), $nothing, $nothing, $nothing, $nothing, TRUE);
+  $user_id = l('<img src="'. drupal_get_path('module', 'aoc_tools') .'/green.gif" alt="Y"/>', ("user/". $fields['uid']), $nothing, $nothing, $nothing, $nothing, TRUE);
   $registered++;
 }
 else {
-  $user_id = '<img src="'. drupal_get_path('module', 'aoc_tools') .'/red.gif" />';
+  $user_id = '<img src="'. drupal_get_path('module', 'aoc_tools') .'/red.gif" alt="N" />';
 }
 
 
@@ -291,7 +330,6 @@ $output[$i] =  array('data' => array(
   format_date($fields['date'], 'medium'),
   ' ',
   $last_seen,
-//	drupal_render($form['form']['promote']),
   ));
   $i++;
 }
@@ -313,21 +351,23 @@ else {
 
 function aoc_tools_install() {
 
-// Install aoc_tools_lister table
+// Setup the translation table
+  db_query('CREATE TABLE IF NOT EXISTS {aoc_tools_translation} (
+    `en` varchar(255) NOT NULL,
+    `de` varchar(255) NOT NULL
+  ) ENGINE=MyISAM DEFAULT CHARSET=latin1;'
+  );
+  db_query("INSERT INTO {aoc_tools_translation} (`en`, `de`) VALUES 
+    ('Weaponsmith', 'Waffenschmied'),
+    ('Armorsmith', 'Rüstungsschmied'),
+    ('Alchemist', 'Alchemist'),
+    ('Architect', 'Architekt'),
+    ('Gemcutter', 'Juwelenschneider');"
+  );
 
-	/* well nothing left to do for now */
 } // function aoc_tools_install end
 
 /* function aoc_tools_uninstall() {
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
-	variable_del('aoc_tools_');
 
 }  // function aoc_tools_ end
  */
