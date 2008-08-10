@@ -11,11 +11,11 @@
  */
 function aoc_professionsync_cron() {
   if (variable_get('aoc_tools_profession_cron', 0) == 1) {
-    aoc_tools_professionsync_update();
+    _aoc_professionsync_update();
   }
 }
 
-function aoc_professionsync_update() {
+function _aoc_professionsync_update() {
   $translation = array();
   $trans_sql = db_query('SELECT de, en FROM {aoc_tools_translation}');
   $field = 0;
