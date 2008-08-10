@@ -1,0 +1,5 @@
+; $Id$
+name = AoC Profession Sync
+description = Synchronizes professions from the profile to bebot
+dependencies = aoc_tools profile
+package = Age of Conan

@@ -1,0 +1,6 @@
+; $Id$
+name = AoC User Lister
+description = Compares Users against Bebot and shows who's not registered
+dependencies = aoc_tools profile
+package = Age of Conan
+

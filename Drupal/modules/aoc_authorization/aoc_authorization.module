@@ -1,35 +1,6 @@
 <?php
 // $Id$
 
-/**
- * Display help and module information
- * @param section which section of the site we're displaying help
- * @return help text for section
- */
-function aoc_authorization_help($section='') {
-
-  $output = '';
-
-  switch ($section) {
-  case "admin/help#aoc_authorization":
-  $output = '<p>'. t("Assigns Users a specific role on Membership.") .'</p>';
-  break;
-  }
-
-  return $output;
-} // function aoc_authorization_help
-
-
-/**
- * Valid permissions for this module
- * @return array An array of valid permissions for the aoc_authorization module
- */
-
-function aoc_authorization_perm() {
-  return array('administer AoC Authorization');
-} // function aoc_authorization_perm()
-
-
 function _aoc_authorization_get_legit_users() {
 
   $b = db_escape_string(variable_get('aoc_tools_bebot_dbname', 'bebot'));

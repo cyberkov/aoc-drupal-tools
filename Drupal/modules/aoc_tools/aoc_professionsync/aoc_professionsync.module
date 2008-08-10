@@ -1,0 +1,105 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * This module is responsible for taking the data from the profession fields and write it to the crafting table of bebot.
+ */
+
+/**
+ * Implementation of hook_cron().
+ */
+function aoc_professionsync_cron() {
+  if (variable_get('aoc_tools_profession_cron', 0) == 1) {
+    aoc_tools_professionsync_update();
+  }
+}
+
+function aoc_professionsync_update() {
+  $translation = array();
+  $trans_sql = db_query('SELECT de, en FROM {aoc_tools_translation}');
+  $field = 0;
+  while ($field = db_fetch_object($trans_sql)) {
+    $translation[$field->de] = $field->en;
+  }
+
+  $ingamename = variable_get('aoc_tools_ingamename', 0);
+  $bebotdb = variable_get('aoc_tools_bebot_dbname', 'bebot');
+  $prof1 = variable_get('aoc_tools_profession1', 0);
+  $prof2 = variable_get('aoc_tools_profession2', 0);
+  //get INSERT SELECTS
+  $result1 = db_query('SELECT u.value AS name, t.en AS class1
+  FROM {profile_values} u
+  JOIN {profile_values} v ON u.uid = v.uid
+  JOIN {aoc_tools_translation} t ON v.value = t.de
+  WHERE u.fid="'. $ingamename .'"
+  AND u.uid != "0"
+  AND v.fid="'. $prof1 .'"
+  AND v.value != "0"
+  AND u.value NOT IN (
+  SELECT c.name FROM '. $bebotdb .'.craftingclass c)
+  ORDER BY u.value;
+  ');
+
+  $result2 = db_query('SELECT u.value AS name, t.en AS class2
+  FROM {profile_values} u
+  JOIN {profile_values} v ON u.uid = v.uid
+  JOIN {aoc_tools_translation} t ON v.value = t.de
+  WHERE u.fid="'. $ingamename .'"
+  AND u.uid != "0"
+  AND v.fid="'. $prof2 .'"
+  AND v.value != "0"
+  AND u.value NOT IN (
+  SELECT c.name
+  FROM '. $bebotdb .'.craftingclass c)
+  ORDER BY u.value;
+  ');
+
+
+  while ($field = db_fetch_object($result1)) {
+    $sql = 'INSERT INTO '. $bebotdb .'.craftingclass(name, class1) VALUES ("'. $field->name .'","'. $field->class1 .'");';
+    db_query($sql);
+  }
+
+  while ($field = db_fetch_object($result2)) {
+    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
+    db_query($sql);
+  }
+
+  // Update changes
+  $result1 = db_query('SELECT u.value AS name, t.en AS class1
+  FROM {profile_values} u
+  JOIN {profile_values} v ON u.uid = v.uid
+  JOIN {aoc_tools_translation} t ON v.value = t.de
+  JOIN '. $bebotdb .'.craftingclass c ON u.value = c.name
+  WHERE u.fid = "'. $ingamename .'"
+  AND u.uid != "0"
+  AND v.fid = "'. $prof1 .'"
+  AND v.value != "0"
+  AND t.en != c.class1;
+  ');
+
+  $result2 = db_query('SELECT u.value AS name, t.en AS class2
+  FROM {profile_values} u
+  JOIN {profile_values} v ON u.uid = v.uid
+  JOIN {aoc_tools_translation} t ON v.value = t.de
+  JOIN '. $bebotdb .'.craftingclass c ON u.value = c.name
+  WHERE u.fid = "'. $ingamename .'"
+  AND u.uid != "0"
+  AND v.fid = "'. $prof2 .'"
+  AND v.value != "0"
+  AND t.en != c.class2;
+  ');
+	
+  while ($field = db_fetch_object($result1)) {
+    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class1 = "'. $field->class1 .'" WHERE name = "'. $field->name .'";';
+    db_query($sql);
+  }
+
+  while ($field = db_fetch_object($result2)) {
+    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
+    db_query($sql);
+  }
+}
+
+    

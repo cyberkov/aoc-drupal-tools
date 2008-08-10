@@ -1,0 +1,107 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * shows a list of users who are known by the bot and which of them are registered or not
+ */
+
+/**
+ * Valid permissions for this module
+ * @return array An array of valid permissions for the aoc_tools module
+ */
+function aoc_userlister_perm() {
+  return array('see User Lister');
+} // function aoc_tools_perm()
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function aoc_userlister_menu() {
+  $items = array();
+
+  $items[] = array(
+    'path' => 'admin/user/lister',
+    'title' => t('User Lister'),
+    'description' => t('Shows users who shall be promoted'),
+    'callback' => 'aoc_userlister_list',
+    'callback arguments' => '',
+    'access' => user_access('see lister'),
+    'type' => MENU_NORMAL_ITEM,
+    );
+  return $items;
+}
+
+
+function aoc_userlister_list() {
+  $bebotdb =  variable_get('aoc_tools_bebot_dbname', 'bebot');
+
+  $header = array(
+  array('data' => 'R'),
+  array('data' => t('Nickname'), 'field' => 'nickname'),
+  array('data' => ' '),
+  array('data' => t('since'), 'sort' => 'desc', 'field' => 'date'),
+  array('data' => ' '),
+  array('data' => t('Joined on'), 'field' => 'date'),
+  array('data' => ' '),
+  array('data' => t('Last seen at'), 'field' => 'last_seen'),
+  );
+
+  $sql="SELECT v.uid AS uid, b.nickname AS nickname, b.char_id AS char_id, b.added_at AS date, b.last_seen as last_seen
+  FROM ". $bebotdb .".users b
+  LEFT JOIN {profile_values} v
+  ON b.nickname = v.value
+  WHERE b.added_at <= (UNIX_TIMESTAMP()-(14*24*60*60))
+  AND b.deleted_at IS NULL
+  AND b.nickname NOT IN (SELECT alt FROM ". $bebotdb .".alts)".
+  tablesort_sql($header);
+
+  $result =db_query($sql);
+  if (!empty($result)) {
+    $registered = 0;
+    $i=0;
+    $nothing = NULL;
+    while ($fields = db_fetch_array($result)) {
+			
+  // last_seen beautification
+  if ($fields['last_seen'] == 0) {
+      $last_seen = t('never');
+    }
+    else {
+      $last_seen = format_interval(time()-$fields['last_seen']);
+    }
+
+// check if user registered
+  if ($fields['uid']) {
+    $user_id = l('<img src="http://'. $_SERVER["SERVER_NAME"] .'/'. drupal_get_path('module', 'aoc_userlister') .'/images/green.gif" alt="Y"/>', ("user/". $fields['uid']), $nothing, $nothing, $nothing, $nothing, TRUE);
+    $registered++;
+  }
+  else {
+    $user_id = '<img src="http://'. $_SERVER["SERVER_NAME"] .'/'. drupal_get_path('module', 'aoc_userlister') .'/images/red.gif" alt="N" />';
+  }
+
+  $output[$i] =  array('data' => array(
+    $user_id,
+    $fields['nickname'],
+    ' ',
+    format_interval(time()-$fields['date']),
+    ' ',
+    format_date($fields['date'], 'medium'),
+    ' ',
+    $last_seen,
+    ));
+    $i++;
+  }
+  $head = "<p>". t('Dies ist eine Liste der User, die l&auml;nger als zwei Wochen in der Gilde sind.<br />Das H&auml;kchen zeigt an, ob der User auch im Forum registriert ist.<br />Twinks sind hier logischerweise bereits ausgefiltert.') ."</p>";
+
+$footer = "<p>". t("Gesamtzahl Member: %count", array('%count' => $i)) .". <br />". t('Davon sind derzeit %count registriert.', array('%count' => $registered)) ."</p>";
+
+return $head . theme('table', $header, $output) . $footer;
+
+}
+else {
+  $output = "oops. got no data!";
+}
+  return $output;
+}

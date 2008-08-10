@@ -26,7 +26,7 @@ function aoc_tools_help($section='') {
  */
 
 function aoc_tools_perm() {
-  return array('administer AoC Tools', 'see lister');
+  return array('administer AoC Tools');
 } // function aoc_tools_perm()
 
 
@@ -44,13 +44,18 @@ function aoc_tools_admin() {
   '#collapsed' => TRUE,
   );
 
+
+// Professionsync
+if(module_exists('aoc_professionsync')) {
   $form['actions']['aoc_tools_profession_cron'] = array(
   '#type' => 'checkbox',
   '#title' => 'Update professions in Bebot',
   '#default_value' => variable_get('aoc_tools_profession_cron', 0),
   '#description' => t("Update the professions on cronruns? Activate this if you want professions be synced back to Bebot.")
   );
+}
 
+// Authorization
 if(module_exists('aoc_authorization')) {
   $form['actions']['aoc_authorization_cron'] = array(
   '#type' => 'checkbox',
@@ -59,7 +64,7 @@ if(module_exists('aoc_authorization')) {
   '#description' => t("Update the memberships? Activate this after you've set up everything correctly. <br /> As long this is not checked, nothing will be altered.")
   );
 }
-
+//// End Actions
 
 // General setings tab
 
@@ -77,6 +82,7 @@ if(module_exists('aoc_authorization')) {
   '#maxlength' => 20,
   '#description' => t("The database where bebot resides. Drupal's MySQL User <b>must</b> have access to it.")
   );
+//// End General
 
 
 // AoC Authorization
@@ -97,7 +103,7 @@ if(module_exists('aoc_authorization')) {
   );
 }
 
-// profession syncing
+// Profile
   $form['profile'] = array(
   '#type' => 'fieldset',
   '#title' => t('Profile fields'),
@@ -108,41 +114,30 @@ if(module_exists('aoc_authorization')) {
   '#type' => 'select',
   '#title' => t('InGame Name Field'),
   '#default_value' => variable_get('aoc_tools_ingamename', 0),
-  '#options' => aoc_tools_profession_list_profile_fields(),
+  '#options' => aoc_tools_list_profile_fields(),
   '#description' => t('Select the field where the inGame Names are stored.')
   );
 
-  $form['profile']['aoc_tools_profession1'] = array(
-  '#type' => 'select',
-  '#title' => t('Profession Field 1'),
-  '#default_value' => variable_get('aoc_tools_profession1', 0),
-  '#options' => aoc_tools_profession_list_profile_fields(),
-  '#description' => t('Select the first profession field')
-  );
+// this only makes sense if professionsync is active
+  if(module_exists('aoc_professionsync')) {
+    $form['profile']['aoc_tools_profession1'] = array(
+    '#type' => 'select',
+    '#title' => t('Profession Field 1'),
+    '#default_value' => variable_get('aoc_tools_profession1', 0),
+    '#options' => aoc_tools_list_profile_fields(),
+    '#description' => t('Select the first profession field')
+    );
 
-  $form['profile']['aoc_tools_profession2'] = array(
-  '#type' => 'select',
-  '#title' => t('Profession Field 2'),
-  '#default_value' => variable_get('aoc_tools_profession2', 0),
-  '#options' => aoc_tools_profession_list_profile_fields(),
-  '#description' => t('Select the second profession field')
-  );
-
+    $form['profile']['aoc_tools_profession2'] = array(
+    '#type' => 'select',
+    '#title' => t('Profession Field 2'),
+    '#default_value' => variable_get('aoc_tools_profession2', 0),
+    '#options' => aoc_tools_list_profile_fields(),
+    '#description' => t('Select the second profession field')
+    );
+  }
   return system_settings_form($form);
 } // function aoc_tools_admin end
-
-
-/*
- * Cron Hook
- */
-
-function aoc_tools_cron() {
-  if (variable_get('aoc_tools_profession_cron', 0) == 1) {
-    aoc_tools_profession_update();
-  }
-} // function aoc_tools_cron end
-
-
 
 /*
  * Menu Hook
@@ -160,187 +155,20 @@ function aoc_tools_menu() {
     'access' => user_access('access administration pages'),
     'type' => MENU_NORMAL_ITEM,
     );
-
-  $items[] = array(
-    'path' => 'admin/user/lister',
-    'title' => t('User Lister'),
-    'description' => t('Shows users who shall be promoted'),
-    'callback' => 'aoc_tools_lister',
-    'callback arguments' => '',
-    'access' => user_access('see lister'),
-    'type' => MENU_NORMAL_ITEM,
-    );
   return $items;
 } // function aoc_tools_menu end
 
 
-/* /////////////////////// Profession syncing ///////////////////// */
-
-function aoc_tools_profession_list_profile_fields() {
+/**
+ * Aquires available Profile fields of the profile module
+ * @return Array of available profile fields
+ */
+function aoc_tools_list_profile_fields() {
   $result = db_query('SELECT fid, title FROM {profile_fields};');
   while ($field = db_fetch_object($result)) {
     $data[$field->fid] = $field->title;
   }
   return $data;
-}
-
-function aoc_tools_profession_update() {
-  $translation = array();
-  $trans_sql = db_query('SELECT de, en FROM {aoc_tools_translation}');
-  $field = 0;
-  while ($field = db_fetch_object($trans_sql)) {
-    $translation[$field->de] = $field->en;
-    }
-
-  $ingamename = variable_get('aoc_tools_ingamename', 0);
-  $bebot_db = variable_get('aoc_tools_bebot_dbname', 'bebot');
-  $prof1 = variable_get('aoc_tools_profession1', 0);
-  $prof2 = variable_get('aoc_tools_profession2', 0);
-  //get INSERT SELECTS
-  $result1 = db_query('SELECT u.value AS name, t.en AS class1
-  FROM {profile_values} u
-  JOIN {profile_values} v ON u.uid = v.uid
-  JOIN {aoc_tools_translation} t ON v.value = t.de
-  WHERE u.fid="'. $ingamename .'"
-  AND u.uid != "0"
-  AND v.fid="'. $prof1 .'"
-  AND v.value != "0"
-  AND u.value NOT IN (
-  SELECT c.name FROM bebot.craftingclass c)
-  ORDER BY u.value;
-  ');
-
-  $result2 = db_query('SELECT u.value AS name, t.en AS class2
-  FROM {profile_values} u
-  JOIN {profile_values} v ON u.uid = v.uid
-  JOIN {aoc_tools_translation} t ON v.value = t.de
-  WHERE u.fid="'. $ingamename .'"
-  AND u.uid != "0"
-  AND v.fid="'. $prof2 .'"
-  AND v.value != "0"
-  AND u.value NOT IN (
-  SELECT c.name
-  FROM bebot.craftingclass c)
-  ORDER BY u.value;
-  ');
-
-  $bebotdb = variable_get('aoc_tools_bebot_dbname', 'bebot');
-
-  while ($field = db_fetch_object($result1)) {
-    $sql = 'INSERT INTO '. $bebotdb .'.craftingclass(name, class1) VALUES ("'. $field->name .'","'. $field->class1 .'");';
-    db_query($sql);
-  }
-
-  while ($field = db_fetch_object($result2)) {
-    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
-    db_query($sql);
-  }
-
-  // Update changes
-  $result1 = db_query('SELECT u.value AS name, t.en AS class1
-  FROM {profile_values} u
-  JOIN {profile_values} v ON u.uid = v.uid
-  JOIN {aoc_tools_translation} t ON v.value = t.de
-  JOIN '. $bebotdb .'.craftingclass c ON u.value = c.name
-  WHERE u.fid = "'. $ingamename .'"
-  AND u.uid != "0"
-  AND v.fid = "'. $prof1 .'"
-  AND v.value != "0"
-  AND t.en != c.class1;
-  ');
-
-  $result2 = db_query('SELECT u.value AS name, t.en AS class2
-  FROM {profile_values} u
-  JOIN {profile_values} v ON u.uid = v.uid
-  JOIN {aoc_tools_translation} t ON v.value = t.de
-  JOIN '. $bebotdb .'.craftingclass c ON u.value = c.name
-  WHERE u.fid = "'. $ingamename .'"
-  AND u.uid != "0"
-  AND v.fid = "'. $prof2 .'"
-  AND v.value != "0"
-  AND t.en != c.class2;
-  ');
-	
-  while ($field = db_fetch_object($result1)) {
-    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class1 = "'. $field->class1 .'" WHERE name = "'. $field->name .'";';
-    db_query($sql);
-  }
-
-  while ($field = db_fetch_object($result2)) {
-    $sql = 'UPDATE '. $bebotdb .'.craftingclass SET class2 = "'. $field->class2 .'" WHERE name = "'. $field->name .'";';
-    db_query($sql);
-  }
-}
-
-/* ////////////////////// Lister  //////////////////////////////////// */
-
-function aoc_tools_lister() {
-  $header = array(
-  array('data' => 'R'),
-  array('data' => t('Nickname'), 'field' => 'nickname'),
-  array('data' => ' '),
-  array('data' => t('since'), 'sort' => 'desc', 'field' => 'date'),
-  array('data' => ' '),
-  array('data' => t('Joined on'), 'field' => 'date'),
-  array('data' => ' '),
-  array('data' => t('Last seen at'), 'field' => 'last_seen'),
-  );
-
-  $sql="SELECT v.uid AS uid, b.nickname AS nickname, b.char_id AS char_id, b.added_at AS date, b.last_seen as last_seen
-  FROM bebot.users b
-  LEFT JOIN {profile_values} v
-  ON b.nickname = v.value
-  WHERE b.added_at <= (UNIX_TIMESTAMP()-(14*24*60*60))
-  AND b.deleted_at IS NULL
-  AND b.nickname NOT IN (SELECT alt FROM bebot.alts)".
-  tablesort_sql($header);
-  //ORDER BY date DESC;";
-
-  $result =db_query($sql);
-  if (!empty($result)) {
-    $registered = 0;
-    $i=0;
-    $nothing = NULL;
-    while ($fields = db_fetch_array($result)) {
-			
-  // last_seen beautification
-  if ($fields['last_seen'] == 0) {
-      $last_seen = t('never');
-    }
-    else {
-      $last_seen = format_interval(time()-$fields['last_seen']);
-    }
-
-// check if user registered
-if ($fields['uid']) {
-  $user_id = l('<img src="'. drupal_get_path('module', 'aoc_tools') .'/green.gif" alt="Y"/>', ("user/". $fields['uid']), $nothing, $nothing, $nothing, $nothing, TRUE);
-  $registered++;
-}
-else {
-  $user_id = '<img src="'. drupal_get_path('module', 'aoc_tools') .'/red.gif" alt="N" />';
-}
-
-
-$output[$i] =  array('data' => array(
-  $user_id,
-  $fields['nickname'],
-  ' ',
-  format_interval(time()-$fields['date']),
-  ' ',
-  format_date($fields['date'], 'medium'),
-  ' ',
-  $last_seen,
-  ));
-  $i++;
-}
-$blubb = "<p>". t('Dies ist eine Liste der User, die l&auml;nger als zwei Wochen in der Gilde sind.<br />Das H&auml;kchen zeigt an, ob der User auch im Forum registriert ist.<br />Twinks sind hier logischerweise bereits ausgefiltert.') ."</p>";
-
-return $blubb . theme('table', $header, $output) ."<p>Gesamtzahl Member: $i. <br />Davon sind derzeit $registered registriert.</p>";
-}
-else {
-  $output = "oops. got no data!";
-}
-  return $output;
 }
 
 /* ////////////////////// Installation, uninstall and Updates.... ////////////// */
